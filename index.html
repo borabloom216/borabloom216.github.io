@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>네이버 검색광고 성과 인텔리전스</title>
+  <title>네이버 보보SA광고 성과 리포트</title>
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -38,7 +38,6 @@
       const [pivotBy, setPivotBy] = useState('campaignType');
       const [loadError, setLoadError] = useState(false);
       
-      // 월 총 예산 입력 상태 (기본값 1억 원으로 설정, 웹에서 자유롭게 수정 가능)
       const [monthlyBudget, setMonthlyBudget] = useState(100000000); 
 
       const cleanNum = (val) => {
@@ -47,7 +46,6 @@
         return isNaN(num) ? 0 : num;
       };
 
-      // CSV 데이터 불러오기
       useEffect(() => {
         Papa.parse('data.csv', {
           download: true,
@@ -67,7 +65,6 @@
               campaign: row['campaign'] || '',
               campaignType: row['campaigntype'] || row['type'] || '기타',
               device: row['device'] || '기타',
-              // CSV에 있는 spend, revenue 등을 정확히 매칭
               spend: cleanNum(row['spend'] || row['ad spend']),
               clicks: cleanNum(row['clicks']),
               impressions: cleanNum(row['impressions']),
@@ -86,7 +83,6 @@
         });
       }, []);
 
-      // 실제 데이터 기반 동적 카테고리 추출
       const categories = useMemo(() => {
         return ['전체', ...new Set(rawData.map(d => d.category))];
       }, [rawData]);
@@ -95,7 +91,6 @@
         return selectedCategory === '전체' ? rawData : rawData.filter(d => d.category === selectedCategory);
       }, [selectedCategory, rawData]);
 
-      // 전체 요약 통계 계산
       const totalStats = useMemo(() => {
         const totalSpend = rawData.reduce((a, b) => a + b.spend, 0);
         const totalRevenue = rawData.reduce((a, b) => a + b.revenue, 0);
@@ -111,7 +106,6 @@
         };
       }, [rawData, monthlyBudget]);
 
-      // 선택된 카테고리 통계
       const stats = useMemo(() => {
         const totalSpend = filteredData.reduce((acc, curr) => acc + curr.spend, 0);
         const totalRevenue = filteredData.reduce((acc, curr) => acc + curr.revenue, 0);
@@ -127,7 +121,6 @@
         };
       }, [filteredData]);
 
-      // 피벗 테이블 데이터
       const pivotData = useMemo(() => {
         const groups = {};
         filteredData.forEach(item => {
@@ -143,7 +136,6 @@
         return Object.values(groups).sort((a, b) => b.spend - a.spend); 
       }, [filteredData, pivotBy]);
 
-      // 카테고리별 성과 비교를 위한 데이터 (Target 데이터 삭제 후 실제 수치 기반 비교)
       const roasData = useMemo(() => {
         return categories.filter(c => c !== '전체').map(cat => {
           const cData = rawData.filter(d => d.category === cat);
@@ -180,9 +172,9 @@
               <div>
                 <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
                   <span className="text-blue-600"><Icons.LayoutDashboard /></span>
-                  네이버 검색광고 성과 인텔리전스 ✨
+                  네이버 보보SA광고 성과 리포트
                 </h1>
-                <p className="text-slate-500 text-sm font-medium mt-1">브랜드 가전 품목별 예산 및 성과 통합 리포트</p>
+                <p className="text-slate-500 text-sm font-medium mt-1">삼성공식파트너 보보 X 광고명가 광고 리포트</p>
               </div>
               
               <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
@@ -205,18 +197,18 @@
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3 mb-3 text-slate-400">
                   <Icons.Wallet />
-                  <span className="text-[10px] font-black uppercase tracking-widest">누적 광고 소진액</span>
+                  <span className="text-sm font-black uppercase tracking-widest">소진 광고비</span>
                 </div>
                 <div className="text-2xl font-black">{formatKrw(stats.totalSpend)}</div>
-                <div className="mt-2 text-[10px] text-slate-400 font-bold">
-                  {selectedCategory === '전체' ? '전체 계정 총 지출' : `${selectedCategory} 지출액`}
+                <div className="mt-2 text-[11px] text-slate-400 font-bold">
+                  {selectedCategory === '전체' ? '전체 계정 총 소진 광고비' : `${selectedCategory} 카테고리 소진 광고비`}
                 </div>
               </div>
               
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3 mb-3 text-green-500">
                   <Icons.TrendingUp />
-                  <span className="text-[10px] font-black uppercase tracking-widest">매출 성과 (ROAS)</span>
+                  <span className="text-sm font-black uppercase tracking-widest">매출 성과 (ROAS)</span>
                 </div>
                 <div className="text-2xl font-black text-green-600">{formatKrw(stats.totalRevenue)}</div>
                 <div className="mt-1 text-sm font-black text-green-500">{stats.roas.toFixed(0)}%</div>
@@ -225,7 +217,7 @@
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3 mb-3 text-blue-500">
                   <Icons.Target />
-                  <span className="text-[10px] font-black uppercase tracking-widest">전환 성과 (CVR)</span>
+                  <span className="text-sm font-black uppercase tracking-widest">전환 성과 (CVR)</span>
                 </div>
                 <div className="text-2xl font-black">{formatNum(stats.totalConv)}건</div>
                 <div className="mt-1 text-sm font-black text-blue-500">{stats.cvr.toFixed(2)}%</div>
@@ -234,12 +226,12 @@
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3 mb-3 text-purple-500">
                   <Icons.PieChart />
-                  <span className="text-[10px] font-black uppercase tracking-widest">전체 잔여 예산</span>
+                  <span className="text-sm font-black uppercase tracking-widest">잔여 예산</span>
                 </div>
                 <div className="text-2xl font-black">
-                  {formatKrw(Math.max(0, monthlyBudget - totalStats.spend))}
+                  {formatKrw(Math.max(0, monthlyBudget - stats.totalSpend))}
                 </div>
-                <div className="mt-1 text-[10px] font-bold text-slate-400 uppercase">Monthly Budget Control</div>
+                <div className="mt-1 text-[11px] font-bold text-slate-400 uppercase">Monthly Budget Control</div>
               </div>
             </div>
 
@@ -290,7 +282,7 @@
               </div>
             </div>
 
-            {/* 예산 및 소진율 분석 섹션 (사용자 입력 연동) */}
+            {/* 예산 및 소진율 분석 섹션 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
@@ -313,7 +305,7 @@
                   <div className="bg-slate-900 rounded-2xl p-6 text-white col-span-1">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Burn Rate</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Burn Rate</p>
                         <h4 className="text-xl font-black italic">전체 통합 예산</h4>
                       </div>
                       <div className="text-2xl font-black text-blue-400">{totalStats.burnRate.toFixed(1)}%</div>
@@ -321,8 +313,8 @@
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-blue-400" style={{ width: `${Math.min(totalStats.burnRate, 100)}%` }} />
                     </div>
-                    <div className="flex justify-between text-[11px] font-medium text-slate-300">
-                      <span>소진: {formatKrw(totalStats.spend)}</span>
+                    <div className="flex justify-between text-[13px] font-medium text-slate-300">
+                      <span>소진 광고비: {formatKrw(totalStats.spend)}</span>
                       <span>예산: {formatKrw(monthlyBudget)}</span>
                     </div>
                   </div>
@@ -335,13 +327,13 @@
                       return (
                         <div key={cat} className="p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-black text-slate-800">{cat}</span>
-                            <span className="text-xs font-black text-slate-500">지출 비중 {ratio.toFixed(1)}%</span>
+                            <span className="text-sm font-black text-slate-800">{cat}</span>
+                            <span className="text-sm font-black text-slate-500">소진 비율 {ratio.toFixed(1)}%</span>
                           </div>
                           <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-slate-800" style={{ width: `${ratio}%` }} />
                           </div>
-                          <div className="mt-2 text-[10px] text-slate-400 font-bold">집행액: {formatKrw(spend)}</div>
+                          <div className="mt-2 text-xs text-slate-400 font-bold">소진 광고비: {formatKrw(spend)}</div>
                         </div>
                       );
                     })}
