@@ -160,7 +160,6 @@
       const maxRoas = Math.max(...roasData.map(d => d.roas), 1);
       const maxCvr = Math.max(...cvrData.map(d => d.cvr), 1);
 
-      // 수정 6: ₩ 500,000,000 원 포맷
       const formatKrw = (val) => `₩ ${new Intl.NumberFormat('ko-KR').format(val)} 원`;
       const formatNum = (val) => new Intl.NumberFormat('ko-KR').format(val);
 
@@ -174,7 +173,6 @@
             {/* Header & Filter */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
-                {/* 폰트 레벨 1 */}
                 <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
                   <span className="text-blue-600"><Icons.LayoutDashboard /></span>
                   네이버 보보 SA 광고 성과 리포트
@@ -200,11 +198,10 @@
             {/* Top 4 KPI Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               
-              {/* 1. 소진 광고비 (노란색 테마, 가독성을 위해 짙은 노란색 코드 #d4a000 사용) */}
+              {/* 1. 소진 광고비 */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-[#d4a000]">
                   <Icons.Wallet />
-                  {/* 폰트 레벨 2 */}
                   <span className="text-lg font-black">소진 광고비</span>
                 </div>
                 <div className="text-2xl font-black text-slate-900">{formatKrw(stats.totalSpend)}</div>
@@ -217,7 +214,6 @@
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-green-600">
                   <Icons.TrendingUp />
-                  {/* 폰트 레벨 2 */}
                   <span className="text-lg font-black">매출 성과 (ROAS)</span>
                 </div>
                 <div className="text-2xl font-black text-slate-900">{formatKrw(stats.totalRevenue)}</div>
@@ -228,24 +224,24 @@
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-blue-600">
                   <Icons.Target />
-                  {/* 폰트 레벨 2 */}
                   <span className="text-lg font-black">전환 성과 (CVR)</span>
                 </div>
                 <div className="text-2xl font-black text-slate-900">{formatNum(stats.totalConv)}건</div>
                 <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.cvr.toFixed(2)}%</div>
               </div>
 
-              {/* 4. 잔여 예산 */}
+              {/* 4. 잔여 예산 (수정: 소진 비율 실시간 연동) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-purple-600">
                   <Icons.PieChart />
-                  {/* 폰트 레벨 2 */}
                   <span className="text-lg font-black">잔여 예산</span>
                 </div>
                 <div className="text-2xl font-black text-slate-900">
                   {formatKrw(Math.max(0, monthlyBudget - stats.totalSpend))}
                 </div>
-                {/* 세 번째 줄 Monthly Budget Control 삭제됨 */}
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">
+                  소진 비율 : {monthlyBudget > 0 ? ((stats.totalSpend / monthlyBudget) * 100).toFixed(1) : 0}%
+                </div>
               </div>
             </div>
 
@@ -254,7 +250,6 @@
               {/* ROAS 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                  {/* 폰트 레벨 2 */}
                   <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                     <span className="text-green-600"><Icons.TrendingUp /></span> 카테고리별 ROAS 현황
                   </h3>
@@ -262,7 +257,6 @@
                 <div className="p-8 space-y-6">
                   {roasData.map((d) => (
                     <div key={d.cat} className="space-y-1.5">
-                      {/* 폰트 레벨 3 */}
                       <div className="flex justify-between text-sm font-bold">
                         <span className="text-slate-900">{d.cat}</span>
                         <span className="text-green-600">{d.roas.toFixed(0)}%</span>
@@ -278,7 +272,6 @@
               {/* CVR 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                  {/* 폰트 레벨 2 */}
                   <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                     <span className="text-blue-600"><Icons.Target /></span> 카테고리별 전환율(CVR) 현황
                   </h3>
@@ -286,7 +279,6 @@
                 <div className="p-8 space-y-6">
                   {cvrData.map((d) => (
                     <div key={d.cat} className="space-y-1.5">
-                      {/* 폰트 레벨 3 */}
                       <div className="flex justify-between text-sm font-bold">
                         <span className="text-slate-900">{d.cat}</span>
                         <span className="text-blue-600">{d.cvr.toFixed(2)}%</span>
@@ -303,7 +295,6 @@
             {/* 종합 예산 소진 비율 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                {/* 폰트 레벨 2 */}
                 <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                   <span className="text-slate-600"><Icons.Wallet /></span> 종합 예산 소진 비율
                 </h3>
@@ -320,12 +311,12 @@
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {/* 전체 소진율 카드 */}
+                  
+                  {/* 전체 소진율 카드 (수정: 소진 광고비와 예산 줄바꿈 처리) */}
                   <div className="bg-slate-900 rounded-2xl p-6 text-white col-span-1">
                     <div className="flex justify-between items-start mb-6">
                       <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Burn Rate</p>
-                        {/* 폰트 레벨 1 (기울임 제거됨) */}
                         <h4 className="text-2xl font-black">전체 통합 예산</h4>
                       </div>
                       <div className="text-3xl font-black text-blue-400">{totalStats.burnRate.toFixed(1)}%</div>
@@ -333,8 +324,8 @@
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-blue-400" style={{ width: `${Math.min(totalStats.burnRate, 100)}%` }} />
                     </div>
-                    {/* 폰트 레벨 3 */}
-                    <div className="flex justify-between text-sm font-bold text-slate-300">
+                    {/* 줄바꿈 처리 적용 구역 */}
+                    <div className="flex flex-col gap-2 text-sm font-bold text-slate-300 mt-2">
                       <span>소진 광고비: {formatKrw(totalStats.spend)}</span>
                       <span>예산: {formatKrw(monthlyBudget)}</span>
                     </div>
@@ -348,7 +339,6 @@
                       return (
                         <div key={cat} className="p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                           <div className="flex justify-between items-center mb-2">
-                            {/* 폰트 레벨 3 */}
                             <span className="text-sm font-black text-slate-900">{cat}</span>
                             <span className="text-sm font-bold text-slate-500">소진 비율 {ratio.toFixed(1)}%</span>
                           </div>
@@ -367,7 +357,6 @@
             {/* 세부 성과 항목 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-8 py-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* 폰트 레벨 2 */}
                 <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                   <span className="text-blue-600"><Icons.Filter /></span> 세부 성과 항목
                 </h3>
@@ -378,7 +367,6 @@
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  {/* 테이블 헤더 - 폰트 레벨 3 (크기 통일) */}
                   <thead className="bg-slate-50 text-slate-500 text-left font-bold text-sm border-b border-slate-200">
                     <tr>
                       <th className="px-8 py-5">분석 항목</th>
@@ -392,7 +380,6 @@
                   <tbody className="divide-y divide-slate-50">
                     {pivotData.length > 0 ? pivotData.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                        {/* 테이블 데이터 - 폰트 레벨 3 */}
                         <td className="px-8 py-5 font-black text-slate-900">{row.label}</td>
                         <td className="px-8 py-5 text-right font-bold">{formatKrw(row.spend)}</td>
                         <td className="px-8 py-5 text-right font-black">{formatKrw(row.revenue)}</td>
