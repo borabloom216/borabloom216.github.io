@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>네이버 보보SA광고 성과 리포트</title>
+  <title>네이버 보보 SA 광고 성과 리포트</title>
   
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
@@ -12,23 +12,26 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <style>
+    /* 전체 폰트를 맑은 고딕으로 강제 고정 */
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif !important;
+    }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans">
+<body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
-    // 아이콘 컴포넌트
     const Icons = {
       LayoutDashboard: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
-      Wallet: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-5.45 7.49 2 2 0 0 1-2.31-1.12l-1.56-3.48a2 2 0 0 0-1.82-1.18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h15Z"/></svg>,
-      TrendingUp: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
-      Target: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-      PieChart: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
-      Filter: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Wallet: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-5.45 7.49 2 2 0 0 1-2.31-1.12l-1.56-3.48a2 2 0 0 0-1.82-1.18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h15Z"/></svg>,
+      TrendingUp: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
+      Target: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+      PieChart: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+      Filter: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
     };
 
     const App = () => {
@@ -157,24 +160,26 @@
       const maxRoas = Math.max(...roasData.map(d => d.roas), 1);
       const maxCvr = Math.max(...cvrData.map(d => d.cvr), 1);
 
-      const formatKrw = (val) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(val);
+      // 수정 6: ₩ 500,000,000 원 포맷
+      const formatKrw = (val) => `₩ ${new Intl.NumberFormat('ko-KR').format(val)} 원`;
       const formatNum = (val) => new Intl.NumberFormat('ko-KR').format(val);
 
       if (isLoading) return <div className="flex h-screen items-center justify-center font-black text-2xl text-slate-400">데이터를 불러오는 중입니다...</div>;
       if (loadError) return <div className="flex h-screen items-center justify-center font-black text-2xl text-red-500">data.csv 파일을 찾을 수 없거나 형식이 잘못되었습니다.</div>;
 
       return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
           <div className="max-w-7xl mx-auto">
             
             {/* Header & Filter */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <div>
+                {/* 폰트 레벨 1 */}
                 <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
                   <span className="text-blue-600"><Icons.LayoutDashboard /></span>
-                  네이버 보보SA광고 성과 리포트
+                  네이버 보보 SA 광고 성과 리포트
                 </h1>
-                <p className="text-slate-500 text-sm font-medium mt-1">삼성공식파트너 보보 X 광고명가 광고 리포트</p>
+                <p className="text-slate-500 text-sm font-bold mt-1">삼성공식파트너 보보 X 광고명가 광고 리포트</p>
               </div>
               
               <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
@@ -192,46 +197,55 @@
               </div>
             </div>
 
-            {/* Total Summary Row (선택된 카테고리 기준) */}
+            {/* Top 4 KPI Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              
+              {/* 1. 소진 광고비 (노란색 테마, 가독성을 위해 짙은 노란색 코드 #d4a000 사용) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3 mb-3 text-slate-400">
+                <div className="flex items-center gap-2 mb-3 text-[#d4a000]">
                   <Icons.Wallet />
-                  <span className="text-sm font-black uppercase tracking-widest">소진 광고비</span>
+                  {/* 폰트 레벨 2 */}
+                  <span className="text-lg font-black">소진 광고비</span>
                 </div>
-                <div className="text-2xl font-black">{formatKrw(stats.totalSpend)}</div>
-                <div className="mt-2 text-[11px] text-slate-400 font-bold">
+                <div className="text-2xl font-black text-slate-900">{formatKrw(stats.totalSpend)}</div>
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">
                   {selectedCategory === '전체' ? '전체 계정 총 소진 광고비' : `${selectedCategory} 카테고리 소진 광고비`}
                 </div>
               </div>
               
+              {/* 2. 매출 성과 (ROAS) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3 mb-3 text-green-500">
+                <div className="flex items-center gap-2 mb-3 text-green-600">
                   <Icons.TrendingUp />
-                  <span className="text-sm font-black uppercase tracking-widest">매출 성과 (ROAS)</span>
+                  {/* 폰트 레벨 2 */}
+                  <span className="text-lg font-black">매출 성과 (ROAS)</span>
                 </div>
-                <div className="text-2xl font-black text-green-600">{formatKrw(stats.totalRevenue)}</div>
-                <div className="mt-1 text-sm font-black text-green-500">{stats.roas.toFixed(0)}%</div>
+                <div className="text-2xl font-black text-slate-900">{formatKrw(stats.totalRevenue)}</div>
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.roas.toFixed(0)}%</div>
               </div>
 
+              {/* 3. 전환 성과 (CVR) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3 mb-3 text-blue-500">
+                <div className="flex items-center gap-2 mb-3 text-blue-600">
                   <Icons.Target />
-                  <span className="text-sm font-black uppercase tracking-widest">전환 성과 (CVR)</span>
+                  {/* 폰트 레벨 2 */}
+                  <span className="text-lg font-black">전환 성과 (CVR)</span>
                 </div>
-                <div className="text-2xl font-black">{formatNum(stats.totalConv)}건</div>
-                <div className="mt-1 text-sm font-black text-blue-500">{stats.cvr.toFixed(2)}%</div>
+                <div className="text-2xl font-black text-slate-900">{formatNum(stats.totalConv)}건</div>
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.cvr.toFixed(2)}%</div>
               </div>
 
+              {/* 4. 잔여 예산 */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-3 mb-3 text-purple-500">
+                <div className="flex items-center gap-2 mb-3 text-purple-600">
                   <Icons.PieChart />
-                  <span className="text-sm font-black uppercase tracking-widest">잔여 예산</span>
+                  {/* 폰트 레벨 2 */}
+                  <span className="text-lg font-black">잔여 예산</span>
                 </div>
-                <div className="text-2xl font-black">
+                <div className="text-2xl font-black text-slate-900">
                   {formatKrw(Math.max(0, monthlyBudget - stats.totalSpend))}
                 </div>
-                <div className="mt-1 text-[11px] font-bold text-slate-400 uppercase">Monthly Budget Control</div>
+                {/* 세 번째 줄 Monthly Budget Control 삭제됨 */}
               </div>
             </div>
 
@@ -240,15 +254,17 @@
               {/* ROAS 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                  <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                  {/* 폰트 레벨 2 */}
+                  <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                     <span className="text-green-600"><Icons.TrendingUp /></span> 카테고리별 ROAS 현황
                   </h3>
                 </div>
                 <div className="p-8 space-y-6">
                   {roasData.map((d) => (
                     <div key={d.cat} className="space-y-1.5">
-                      <div className="flex justify-between text-[11px] font-bold">
-                        <span className="text-slate-800">{d.cat}</span>
+                      {/* 폰트 레벨 3 */}
+                      <div className="flex justify-between text-sm font-bold">
+                        <span className="text-slate-900">{d.cat}</span>
                         <span className="text-green-600">{d.roas.toFixed(0)}%</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -262,15 +278,17 @@
               {/* CVR 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                  <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                  {/* 폰트 레벨 2 */}
+                  <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
                     <span className="text-blue-600"><Icons.Target /></span> 카테고리별 전환율(CVR) 현황
                   </h3>
                 </div>
                 <div className="p-8 space-y-6">
                   {cvrData.map((d) => (
                     <div key={d.cat} className="space-y-1.5">
-                      <div className="flex justify-between text-[11px] font-bold">
-                        <span className="text-slate-800">{d.cat}</span>
+                      {/* 폰트 레벨 3 */}
+                      <div className="flex justify-between text-sm font-bold">
+                        <span className="text-slate-900">{d.cat}</span>
                         <span className="text-blue-600">{d.cvr.toFixed(2)}%</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -282,44 +300,47 @@
               </div>
             </div>
 
-            {/* 예산 및 소진율 분석 섹션 */}
+            {/* 종합 예산 소진 비율 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                  <span className="text-slate-600"><Icons.Wallet /></span> 전체 예산 소진율 및 비중 (Burn Rate)
+                {/* 폰트 레벨 2 */}
+                <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                  <span className="text-slate-600"><Icons.Wallet /></span> 종합 예산 소진 비율
                 </h3>
                 <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
-                  <span className="text-xs font-bold text-slate-500">이번 달 총 예산 설정:</span>
+                  <span className="text-sm font-bold text-slate-600">이번 달 총 예산 설정:</span>
                   <input 
                     type="number" 
                     value={monthlyBudget} 
                     onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                    className="border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold w-36 text-right focus:outline-none focus:border-blue-500"
+                    className="border border-slate-300 rounded-lg px-3 py-1 text-sm font-bold w-40 text-right focus:outline-none focus:border-blue-500"
                   />
-                  <span className="text-xs font-bold text-slate-500">원</span>
+                  <span className="text-sm font-bold text-slate-600">원</span>
                 </div>
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {/* 전체 소진율 카드 */}
                   <div className="bg-slate-900 rounded-2xl p-6 text-white col-span-1">
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-6">
                       <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Burn Rate</p>
-                        <h4 className="text-xl font-black italic">전체 통합 예산</h4>
+                        {/* 폰트 레벨 1 (기울임 제거됨) */}
+                        <h4 className="text-2xl font-black">전체 통합 예산</h4>
                       </div>
-                      <div className="text-2xl font-black text-blue-400">{totalStats.burnRate.toFixed(1)}%</div>
+                      <div className="text-3xl font-black text-blue-400">{totalStats.burnRate.toFixed(1)}%</div>
                     </div>
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-blue-400" style={{ width: `${Math.min(totalStats.burnRate, 100)}%` }} />
                     </div>
-                    <div className="flex justify-between text-[13px] font-medium text-slate-300">
+                    {/* 폰트 레벨 3 */}
+                    <div className="flex justify-between text-sm font-bold text-slate-300">
                       <span>소진 광고비: {formatKrw(totalStats.spend)}</span>
                       <span>예산: {formatKrw(monthlyBudget)}</span>
                     </div>
                   </div>
 
-                  {/* 카테고리별 예산 소진 비중 */}
+                  {/* 카테고리별 예산 소진 비율 */}
                   <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categories.filter(c => c !== '전체').map(cat => {
                       const spend = rawData.filter(d => d.category === cat).reduce((a, b) => a + b.spend, 0);
@@ -327,13 +348,14 @@
                       return (
                         <div key={cat} className="p-4 border border-slate-100 rounded-2xl hover:bg-slate-50 transition-colors">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm font-black text-slate-800">{cat}</span>
-                            <span className="text-sm font-black text-slate-500">소진 비율 {ratio.toFixed(1)}%</span>
+                            {/* 폰트 레벨 3 */}
+                            <span className="text-sm font-black text-slate-900">{cat}</span>
+                            <span className="text-sm font-bold text-slate-500">소진 비율 {ratio.toFixed(1)}%</span>
                           </div>
                           <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-slate-800" style={{ width: `${ratio}%` }} />
                           </div>
-                          <div className="mt-2 text-xs text-slate-400 font-bold">소진 광고비: {formatKrw(spend)}</div>
+                          <div className="mt-3 text-sm text-slate-500 font-bold">소진 광고비: {formatKrw(spend)}</div>
                         </div>
                       );
                     })}
@@ -342,37 +364,40 @@
               </div>
             </div>
 
-            {/* Pivot Table */}
+            {/* 세부 성과 항목 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-8 py-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h3 className="font-black text-slate-900 text-sm flex items-center gap-2 uppercase tracking-tight">
-                  <span className="text-blue-600"><Icons.Filter /></span> 세부 성과 데이터 피벗 ({selectedCategory})
+                {/* 폰트 레벨 2 */}
+                <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                  <span className="text-blue-600"><Icons.Filter /></span> 세부 성과 항목
                 </h3>
                 <div className="flex bg-slate-100 p-1 rounded-xl">
-                  <button onClick={() => setPivotBy('campaignType')} className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${pivotBy === 'campaignType' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>광고유형</button>
-                  <button onClick={() => setPivotBy('device')} className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${pivotBy === 'device' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>디바이스</button>
+                  <button onClick={() => setPivotBy('campaignType')} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${pivotBy === 'campaignType' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>광고유형</button>
+                  <button onClick={() => setPivotBy('device')} className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${pivotBy === 'device' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>디바이스</button>
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-slate-400 text-left font-bold text-[10px] uppercase tracking-widest border-b border-slate-200">
+                  {/* 테이블 헤더 - 폰트 레벨 3 (크기 통일) */}
+                  <thead className="bg-slate-50 text-slate-500 text-left font-bold text-sm border-b border-slate-200">
                     <tr>
-                      <th className="px-8 py-5">분석 기준 ({pivotBy === 'campaignType' ? '유형' : '기기'})</th>
+                      <th className="px-8 py-5">분석 항목</th>
                       <th className="px-8 py-5 text-right">광고비</th>
                       <th className="px-8 py-5 text-right">매출액</th>
                       <th className="px-8 py-5 text-right">ROAS</th>
-                      <th className="px-8 py-5 text-right">전환수</th>
-                      <th className="px-8 py-5 text-right text-blue-600">구매전환율</th>
+                      <th className="px-8 py-5 text-right">판매수량</th>
+                      <th className="px-8 py-5 text-right text-blue-600">전환 성과 (CVR)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {pivotData.length > 0 ? pivotData.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                        {/* 테이블 데이터 - 폰트 레벨 3 */}
                         <td className="px-8 py-5 font-black text-slate-900">{row.label}</td>
-                        <td className="px-8 py-5 text-right font-medium">{formatKrw(row.spend)}</td>
+                        <td className="px-8 py-5 text-right font-bold">{formatKrw(row.spend)}</td>
                         <td className="px-8 py-5 text-right font-black">{formatKrw(row.revenue)}</td>
                         <td className="px-8 py-5 text-right text-green-600 font-black">{row.spend > 0 ? ((row.revenue / row.spend) * 100).toFixed(0) : 0}%</td>
-                        <td className="px-8 py-5 text-right font-medium">{formatNum(row.conv)}건</td>
+                        <td className="px-8 py-5 text-right font-bold">{formatNum(row.conv)}건</td>
                         <td className="px-8 py-5 text-right font-black text-blue-600">{row.clicks > 0 ? ((row.conv / row.clicks) * 100).toFixed(2) : 0}%</td>
                       </tr>
                     )) : (
