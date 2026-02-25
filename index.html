@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마케팅 대시보드</title>
+  
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <style>
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect } = React;
+
+    // 간단한 SVG 아이콘 컴포넌트
+    const IconDashboard = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>;
+    const IconWallet = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-5.45 7.49 2 2 0 0 1-2.31-1.12l-1.56-3.48a2 2 0 0 0-1.82-1.18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h15Z"/></svg>;
+    const IconTrending = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
+    const IconTarget = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+    const IconSparkles = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>;
+
+    const App = () => {
+      const [rawData, setRawData] = useState([]);
+      const [isLoading, setIsLoading] = useState(true);
+      const [selectedCategory, setSelectedCategory] = useState('전체');
+      const [aiAnalysis, setAiAnalysis] = useState(null);
+      const [isGenerating, setIsGenerating] = useState(false);
+
+      // 카테고리별 목표 KPI 예산 설정 (코드에서 쉽게 수정 가능)
+      const config = {
+        'TV': { targetROAS: 1000, targetCVR: 1.2, budget: 15000000 },
+        '에어컨': { targetROAS: 800, targetCVR: 2.5, budget: 20000000 },
+        '냉장고': { targetROAS: 600, targetCVR: 2.2, budget: 10000000 },
+      };
+
+      // 숫자/퍼센트/콤마 데이터 정제 함수
+      const cleanNumber = (val) => {
+        if (!val) return 0;
+        return Number(val.toString().replace(/,/g, '').replace(/%/g, '').trim());
+      };
+
+      // CSV 파일 불러오기
+      useEffect(() => {
+        Papa.parse('data.csv', {
+          download: true,
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const parsed = results.data.map((row, idx) => ({
+              id: idx,
+              category: row['category'] || '미분류',
+              spend: cleanNumber(row['Ad spend']),
+              revenue: cleanNumber(row['Revenue']),
+              cvr: cleanNumber(row['CVR']),
+              ctr: cleanNumber(row['CTR']),
+              roas: cleanNumber(row['ROAS'])
+            }));
+            setRawData(parsed);
+            setIsLoading(false);
+          },
+          error: (err) => {
+            console.error("CSV 로드 실패:", err);
+            setIsLoading(false);
+          }
+        });
+      }, []);
+
+      // 동적 카테고리 리스트 추출
+      const categories = useMemo(() => {
+        const cats = [...new Set(rawData.map(d => d.category))];
+        return ['전체', ...cats];
+      }, [rawData]);
+
+      // 필터링된 데이터
+      const filteredData = useMemo(() => {
+        return selectedCategory === '전체' ? rawData : rawData.filter(d => d.category === selectedCategory);
+      }, [selectedCategory, rawData]);
+
+      // 통계 계산
+      const stats = useMemo(() => {
+        if (filteredData.length === 0) return { totalSpend: 0, totalRevenue: 0, roas: 0, cvr: 0, ctr: 0 };
+        
+        const totalSpend = filteredData.reduce((acc, curr) => acc + curr.spend, 0);
+        const totalRevenue = filteredData.reduce((acc, curr) => acc + curr.revenue, 0);
+        
+        // ROAS는 전체 예산 대비 매출로 재계산
+        const roas = totalSpend > 0 ? (totalRevenue / totalSpend) * 100 : 0;
+        // CVR, CTR은 제공된 퍼센트의 단순 평균 처리
+        const cvr = filteredData.reduce((acc, curr) => acc + curr.cvr, 0) / filteredData.length;
+        const ctr = filteredData.reduce((acc, curr) => acc + curr.ctr, 0) / filteredData.length;
+
+        return { totalSpend, totalRevenue, roas, cvr, ctr };
+      }, [filteredData]);
+
+      // Gemini AI 진단
+      const fetchAIInsights = async () => {
+        setIsGenerating(true);
+        const apiKey = ""; // 👈 여기에 발급받으신 Gemini API 키를 넣으세요!
+
+        const prompt = `
+          당신은 마케팅 데이터 분석 전문가입니다. 아래 데이터를 기반으로 인사이트를 도출하세요.
+          - 분석 카테고리: ${selectedCategory}
+          - 총 광고비: ${stats.totalSpend}원
+          - 총 매출액: ${stats.totalRevenue}원
+          - ROAS: ${stats.roas.toFixed(2)}%
+          - 평균 CVR: ${stats.cvr.toFixed(2)}%
+          
+          가이드:
+          1. 현재 수치에 대한 객관적 평가
+          2. ROAS와 CVR 수치를 기반으로 한 예산 최적화 제안
+          3. 즉각 실행 가능한 액션 플랜 2가지
+        `;
+
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              systemInstruction: { parts: [{ text: "마케팅 전문가의 톤앤매너로 핵심만 간결하게 리포트를 작성하세요." }] }
+            })
+          });
+          const result = await response.json();
+          setAiAnalysis(result.candidates?.[0]?.content?.parts?.[0]?.text);
+        } catch (err) {
+          setAiAnalysis("AI 분석을 불러오는 중 오류가 발생했습니다. API 키를 확인해주세요.");
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+
+      const formatKrw = (val) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(val);
+
+      if (isLoading) return <div className="flex h-screen items-center justify-center font-bold text-xl text-blue-600">데이터를 불러오는 중입니다...</div>;
+      if (rawData.length === 0) return <div className="flex h-screen items-center justify-center font-bold text-xl text-red-500">data.csv 파일을 찾을 수 없거나 데이터가 비어있습니다.</div>;
+
+      return (
+        <div className="max-w-7xl mx-auto p-4 md:p-8">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                <span className="text-blue-600"><IconDashboard /></span>
+                통합 광고 성과 대시보드
+              </h1>
+              <p className="text-slate-500 text-sm font-medium mt-1">CSV 데이터 기반 자동화 리포트</p>
+            </div>
+            
+            {/* Category Filter */}
+            <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => { setSelectedCategory(cat); setAiAnalysis(null); }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    selectedCategory === cat ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-3 text-slate-400">
+                <IconWallet /> <span className="text-[10px] font-black uppercase">총 광고비 (Ad Spend)</span>
+              </div>
+              <div className="text-2xl font-black">{formatKrw(stats.totalSpend)}</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-3 text-green-500">
+                <IconTrending /> <span className="text-[10px] font-black uppercase">총 매출액 (Revenue)</span>
+              </div>
+              <div className="text-2xl font-black text-green-600">{formatKrw(stats.totalRevenue)}</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-3 text-blue-500">
+                <IconTarget /> <span className="text-[10px] font-black uppercase">통합 ROAS</span>
+              </div>
+              <div className="text-2xl font-black text-blue-600">{stats.roas.toFixed(1)}%</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex items-center gap-3 mb-3 text-purple-500">
+                <IconTarget /> <span className="text-[10px] font-black uppercase">평균 CVR</span>
+              </div>
+              <div className="text-2xl font-black text-purple-600">{stats.cvr.toFixed(2)}%</div>
+            </div>
+          </div>
+
+          {/* AI Analysis */}
+          <div className="mb-10">
+            {!aiAnalysis ? (
+              <div className="bg-gradient-to-br from-indigo-900 to-blue-800 rounded-3xl p-8 text-white shadow-xl text-center">
+                <h3 className="text-xl font-black mb-4 flex items-center justify-center gap-2">
+                  <span className="text-yellow-300"><IconSparkles /></span> AI 통합 진단 리포트
+                </h3>
+                <button onClick={fetchAIInsights} disabled={isGenerating} className="bg-white text-indigo-900 px-8 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all shadow-md disabled:opacity-50">
+                  {isGenerating ? '데이터 분석 중...' : `${selectedCategory} 성과 분석하기`}
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-lg">
+                <div className="bg-slate-900 px-6 py-4 text-white font-black flex items-center gap-2">
+                  <span className="text-yellow-400"><IconSparkles /></span> {selectedCategory} AI 분석 결과
+                </div>
+                <div className="p-8 prose prose-slate max-w-none text-slate-700 whitespace-pre-wrap font-medium leading-relaxed">
+                  {aiAnalysis}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Data Table */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="font-black text-slate-900 text-sm">세부 데이터 ({selectedCategory})</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-white text-slate-400 text-left font-bold text-[10px] uppercase border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4 text-right">Ad Spend</th>
+                    <th className="px-6 py-4 text-right">Revenue</th>
+                    <th className="px-6 py-4 text-right">ROAS</th>
+                    <th className="px-6 py-4 text-right">CVR</th>
+                    <th className="px-6 py-4 text-right">CTR</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredData.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-slate-900">{row.category}</td>
+                      <td className="px-6 py-4 text-right font-medium">{formatKrw(row.spend)}</td>
+                      <td className="px-6 py-4 text-right font-medium text-green-600">{formatKrw(row.revenue)}</td>
+                      <td className="px-6 py-4 text-right font-black text-blue-600">{row.roas.toFixed(2)}%</td>
+                      <td className="px-6 py-4 text-right font-bold">{row.cvr.toFixed(2)}%</td>
+                      <td className="px-6 py-4 text-right text-slate-500">{row.ctr.toFixed(2)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
