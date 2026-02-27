@@ -87,7 +87,7 @@
               return;
             }
             
-            if (results.data[0]['date']) {
+            if (results.data[0] && results.data[0]['date']) {
               setReportDate(results.data[0]['date']);
             }
             
@@ -218,13 +218,11 @@
       const currentResidual = Math.max(0, currentBudget - stats.totalSpend);
       const currentBurnRatio = currentBudget > 0 ? (stats.totalSpend / currentBudget) * 100 : 0;
 
-      // 전체 카테고리 로직 계산 (ROAS)
       const overallRoasDiff = macroStats['전체'].roas - (targetRoas['전체'] || 1);
       const isOverallRoasAchieved = overallRoasDiff >= 0;
       const overallRoasSign = isOverallRoasAchieved ? '+' : '';
       const overallRoasStatus = isOverallRoasAchieved ? '달성' : '미달성';
 
-      // 전체 카테고리 로직 계산 (CVR)
       const overallCvrDiff = macroStats['전체'].cvr - (targetCvr['전체'] || 1);
       const isOverallCvrAchieved = overallCvrDiff >= 0;
       const overallCvrSign = isOverallCvrAchieved ? '+' : '';
@@ -234,12 +232,10 @@
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
           <div className="max-w-7xl mx-auto">
             
-            {/* Header & Filter */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
               <div className="flex items-center gap-4">
-                {/* 🚨 로고 이미지: 파일명을 사용하실 이미지 파일명(예: logo.png)으로 꼭 변경해 주세요! */}
                 <img 
-                  src="logo.png" 
+                  src="LOGO.jpg" 
                   alt="보보 로고" 
                   className="h-16 w-auto object-contain" 
                   onError={(e) => { e.target.style.display = 'none'; }} 
@@ -268,7 +264,6 @@
               </div>
             </div>
 
-            {/* 1. 종합 예산 소진 비율 */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
@@ -278,7 +273,6 @@
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   
-                  {/* 전체 소진율 카드 */}
                   <div className="bg-slate-900 rounded-2xl p-6 text-white col-span-1">
                     <div className="flex justify-between items-start mb-6">
                       <div>
@@ -296,7 +290,6 @@
                     </div>
                   </div>
 
-                  {/* 카테고리별 개별 예산 입력 */}
                   <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {macroCategories.map(mc => {
                       const spend = macroStats[mc].spend;
@@ -331,7 +324,6 @@
               </div>
             </div>
 
-            {/* 2. Top 4 KPI Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -375,10 +367,8 @@
               </div>
             </div>
 
-            {/* 3. 카테고리별 목표 달성 현황 (ROAS & CVR) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               
-              {/* ROAS 목표 달성 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
                   <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
@@ -387,7 +377,6 @@
                 </div>
                 <div className="p-8 space-y-6">
                   
-                  {/* 전체 카테고리 통합 ROAS */}
                   <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
                       <div className="flex items-center gap-2">
@@ -396,7 +385,7 @@
                       </div>
                       <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                         <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                          <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                          <span className="text-[13px] font-bold text-slate-500">목표설정</span>
                           <input type="number" value={targetRoas['전체']} onChange={(e)=>setTargetRoas({...targetRoas, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
                           <span className="text-[12px] font-bold text-slate-500">%</span>
                         </div>
@@ -410,7 +399,6 @@
                     </div>
                   </div>
 
-                  {/* 개별 카테고리 ROAS */}
                   {macroCategories.map((mc) => {
                     const diff = macroStats[mc].roas - (targetRoas[mc] || 1);
                     const isAchieved = diff >= 0;
@@ -425,10 +413,9 @@
                             <span className="text-[12px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats[mc].roas.toFixed(0)} %</span>
                           </div>
                           
-                          {/* 수동 입력칸과 달성 텍스트를 한 줄로(좌측 땡김) */}
                           <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                             <div className="flex items-center gap-1">
-                              <span className="text-[12px] font-bold text-slate-400">목표</span>
+                              <span className="text-[13px] font-bold text-slate-400">목표</span>
                               <input type="number" value={targetRoas[mc]} onChange={(e)=>setTargetRoas({...targetRoas, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[13px] focus:outline-none focus:border-green-500" />
                               <span className="text-[12px] font-bold text-slate-400">%</span>
                             </div>
@@ -446,7 +433,6 @@
                 </div>
               </div>
 
-              {/* CVR 목표 달성 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
                   <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
@@ -455,7 +441,6 @@
                 </div>
                 <div className="p-8 space-y-6">
                   
-                  {/* 전체 카테고리 통합 CVR */}
                   <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
                       <div className="flex items-center gap-2">
@@ -464,7 +449,7 @@
                       </div>
                       <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                         <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                          <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                          <span className="text-[13px] font-bold text-slate-500">목표설정</span>
                           <input type="number" step="0.1" value={targetCvr['전체']} onChange={(e)=>setTargetCvr({...targetCvr, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
                           <span className="text-[12px] font-bold text-slate-500">%</span>
                         </div>
@@ -478,7 +463,6 @@
                     </div>
                   </div>
 
-                  {/* 개별 카테고리 CVR */}
                   {macroCategories.map((mc) => {
                     const diff = macroStats[mc].cvr - (targetCvr[mc] || 1);
                     const isAchieved = diff >= 0;
@@ -495,7 +479,7 @@
                           
                           <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                             <div className="flex items-center gap-1">
-                              <span className="text-[12px] font-bold text-slate-400">목표</span>
+                              <span className="text-[13px] font-bold text-slate-400">목표</span>
                               <input type="number" step="0.1" value={targetCvr[mc]} onChange={(e)=>setTargetCvr({...targetCvr, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[13px] focus:outline-none focus:border-blue-500" />
                               <span className="text-[11px] font-bold text-slate-400">%</span>
                             </div>
@@ -514,7 +498,6 @@
               </div>
             </div>
 
-            {/* 4. 세부 성과 항목 (Model별 데이터 피벗 & 테이블 정렬) */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-8 py-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
