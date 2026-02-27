@@ -58,14 +58,14 @@
       const [sortConfig, setSortConfig] = useState({ key: 'spend', direction: 'desc' });
 
       const [budgets, setBudgets] = useState({
-        'TV': 20000000, '에어컨': 20000000, '공기청정기': 10000000, '청소기': 20000000, '제습기': 10000000, '그 외 상품': 10000000
+        'TV': 28000000, '에어컨': 15000000, '공기청정기': 5000000, '청소기': 10000000, '제습기': 1000000, '그 외 상품': 1000000
       });
 
       const [targetRoas, setTargetRoas] = useState({
-        '전체': 3000, 'TV': 3000, '에어컨': 3000, '공기청정기': 3000, '청소기': 3000, '제습기': 3000, '그 외 상품': 3000
+        '전체': 4000, 'TV': 5000, '에어컨': 2500, '공기청정기': 1800, '청소기': 2000, '제습기': 1500, '그 외 상품': 4000
       });
       const [targetCvr, setTargetCvr] = useState({
-        '전체': 4, 'TV': 4, '에어컨': 4, '공기청정기': 4, '청소기': 4, '제습기': 4, '그 외 상품': 4
+        '전체': 3.5, 'TV': 2.5, '에어컨': 1.7, '공기청정기': 8, '청소기': 2.5, '제습기': 2, '그 외 상품': 3
       });
 
       const cleanNum = (val) => {
@@ -369,6 +369,7 @@
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               
+              {/* ROAS 목표 달성 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
                   <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
@@ -384,8 +385,9 @@
                         <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats['전체'].roas.toFixed(0)} %</span>
                       </div>
                       <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
-                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                          <span className="text-[13px] font-bold text-slate-500">목표설정</span>
+                        {/* 고정 사이즈가 부여된 목표설정 박스 (w-[150px] shrink-0) */}
+                        <div className="flex items-center justify-between w-[150px] shrink-0 bg-white px-2 py-1 rounded border border-slate-200">
+                          <span className="text-[13px] font-bold text-slate-500 whitespace-nowrap">목표설정</span>
                           <input type="number" value={targetRoas['전체']} onChange={(e)=>setTargetRoas({...targetRoas, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
                           <span className="text-[12px] font-bold text-slate-500">%</span>
                         </div>
@@ -433,6 +435,7 @@
                 </div>
               </div>
 
+              {/* CVR 목표 달성 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
                   <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
@@ -448,8 +451,9 @@
                         <span className="text-[12px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats['전체'].cvr.toFixed(2)} %</span>
                       </div>
                       <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
-                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                          <span className="text-[13px] font-bold text-slate-500">목표설정</span>
+                        {/* 고정 사이즈가 부여된 목표설정 박스 (w-[150px] shrink-0) */}
+                        <div className="flex items-center justify-between w-[150px] shrink-0 bg-white px-2 py-1 rounded border border-slate-200">
+                          <span className="text-[13px] font-bold text-slate-500 whitespace-nowrap">목표설정</span>
                           <input type="number" step="0.1" value={targetCvr['전체']} onChange={(e)=>setTargetCvr({...targetCvr, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
                           <span className="text-[12px] font-bold text-slate-500">%</span>
                         </div>
