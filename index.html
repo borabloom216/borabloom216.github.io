@@ -27,7 +27,6 @@
     const { useState, useMemo, useEffect } = React;
 
     const Icons = {
-      LayoutDashboard: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
       Wallet: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a8 8 0 0 1-5.45 7.49 2 2 0 0 1-2.31-1.12l-1.56-3.48a2 2 0 0 0-1.82-1.18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h15Z"/></svg>,
       TrendingUp: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>,
       Target: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
@@ -56,20 +55,17 @@
       const [pivotCategory, setPivotCategory] = useState('전체'); 
       const [loadError, setLoadError] = useState(false);
       
-      // 테이블 정렬 상태 (초기값: 광고비 내림차순)
       const [sortConfig, setSortConfig] = useState({ key: 'spend', direction: 'desc' });
 
-      // 예산 설정 상태
       const [budgets, setBudgets] = useState({
-        'TV': 20000000, '에어컨': 20000000, '공기청정기': 10000000, '청소기': 20000000, '제습기': 10000000, '그 외 상품': 10000000
+        'TV': 28,000,000, '에어컨': 15000000, '공기청정기': 5000000, '청소기': 10000000, '제습기': 1000000, '그 외 상품': 1000000
       });
 
-      // 목표 ROAS / CVR 설정 상태
       const [targetRoas, setTargetRoas] = useState({
-        '전체': 3000, 'TV': 3000, '에어컨': 3000, '공기청정기': 3000, '청소기': 3000, '제습기': 3000, '그 외 상품': 3000
+        '전체': 4000, 'TV': 5000, '에어컨': 2500, '공기청정기': 1800, '청소기': 2000, '제습기': 1500, '그 외 상품': 4000
       });
       const [targetCvr, setTargetCvr] = useState({
-        '전체': 4, 'TV': 4, '에어컨': 4, '공기청정기': 4, '청소기': 4, '제습기': 4, '그 외 상품': 4
+        '전체': 3.5, 'TV': 2.5, '에어컨': 1.7, '공기청정기': 8, '청소기': 2.5, '제습기': 2, '그 외 상품': 3
       });
 
       const cleanNum = (val) => {
@@ -91,7 +87,6 @@
               return;
             }
             
-            // H열 등에서 date 추출
             if (results.data[0]['date']) {
               setReportDate(results.data[0]['date']);
             }
@@ -122,7 +117,6 @@
         return selectedCategory === '전체' ? rawData : rawData.filter(d => d.category === selectedCategory);
       }, [selectedCategory, rawData]);
 
-      // 매크로 그룹핑 통계
       const macroStats = useMemo(() => {
         const stats = { '전체': { spend:0, revenue:0, clicks:0, conv:0 } };
         macroCategories.forEach(mc => stats[mc] = { spend:0, revenue:0, clicks:0, conv:0 });
@@ -167,7 +161,6 @@
         };
       }, [filteredData]);
 
-      // 테이블 피벗 및 정렬
       const sortedPivotData = useMemo(() => {
         const targetData = pivotCategory === '전체' ? rawData : rawData.filter(item => item.category === pivotCategory);
         const groups = {};
@@ -225,19 +218,39 @@
       const currentResidual = Math.max(0, currentBudget - stats.totalSpend);
       const currentBurnRatio = currentBudget > 0 ? (stats.totalSpend / currentBudget) * 100 : 0;
 
+      // 전체 카테고리 로직 계산 (ROAS)
+      const overallRoasDiff = macroStats['전체'].roas - (targetRoas['전체'] || 1);
+      const isOverallRoasAchieved = overallRoasDiff >= 0;
+      const overallRoasSign = isOverallRoasAchieved ? '+' : '';
+      const overallRoasStatus = isOverallRoasAchieved ? '달성' : '미달성';
+
+      // 전체 카테고리 로직 계산 (CVR)
+      const overallCvrDiff = macroStats['전체'].cvr - (targetCvr['전체'] || 1);
+      const isOverallCvrAchieved = overallCvrDiff >= 0;
+      const overallCvrSign = isOverallCvrAchieved ? '+' : '';
+      const overallCvrStatus = isOverallCvrAchieved ? '달성' : '미달성';
+
       return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900">
           <div className="max-w-7xl mx-auto">
             
             {/* Header & Filter */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-              <div>
-                <h1 className="text-[24px] font-black text-slate-900 flex items-center gap-2">
-                  <span className="text-blue-600"><Icons.LayoutDashboard /></span>
-                  네이버 보보 SA 광고 성과 리포트
-                </h1>
-                <p className="text-slate-500 text-[13px] font-bold mt-1">삼성 공식 파트너 주식회사 보보 X 광고명가 광고 리포트</p>
-                {reportDate && <p className="text-slate-500 text-[13px] font-bold mt-1">DATE : {reportDate}</p>}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+              <div className="flex items-center gap-4">
+                {/* 🚨 로고 이미지: 파일명을 사용하실 이미지 파일명(예: logo.png)으로 꼭 변경해 주세요! */}
+                <img 
+                  src="logo.png" 
+                  alt="보보 로고" 
+                  className="h-16 w-auto object-contain" 
+                  onError={(e) => { e.target.style.display = 'none'; }} 
+                />
+                <div>
+                  <h1 className="text-[24px] font-black text-slate-900 flex items-center gap-2">
+                    네이버 보보 SA 광고 성과 리포트
+                  </h1>
+                  <p className="text-slate-500 text-[13px] font-bold mt-1">삼성 공식 파트너 주식회사 보보 X 광고명가 광고 리포트</p>
+                  {reportDate && <p className="text-slate-500 text-[13px] font-bold mt-1">DATE : {reportDate}</p>}
+                </div>
               </div>
               
               <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
@@ -338,7 +351,7 @@
                   <span className="text-[18px] font-black">매출 성과 (ROAS)</span>
                 </div>
                 <div className="text-[24px] font-black text-slate-900">{formatKrw(stats.totalRevenue)}</div>
-                <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.roas.toFixed(0)}%</div>
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">ROAS {stats.roas.toFixed(0)}%</div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -347,7 +360,7 @@
                   <span className="text-[18px] font-black">전환 성과 (CVR)</span>
                 </div>
                 <div className="text-[24px] font-black text-slate-900">{formatNum(stats.totalConv)}건</div>
-                <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.cvr.toFixed(2)}%</div>
+                <div className="mt-2 text-[13px] text-slate-500 font-bold">CVR {stats.cvr.toFixed(2)}%</div>
               </div>
 
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -379,46 +392,53 @@
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-black text-slate-900">전체 카테고리 통합</span>
-                        <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">현재: {macroStats['전체'].roas.toFixed(0)}%</span>
+                        <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats['전체'].roas.toFixed(0)} %</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                        <span className="text-[12px] font-bold text-slate-500">목표설정</span>
-                        <input type="number" value={targetRoas['전체']} onChange={(e)=>setTargetRoas({...targetRoas, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
-                        <span className="text-[12px] font-bold text-slate-500">%</span>
+                      <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
+                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
+                          <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                          <input type="number" value={targetRoas['전체']} onChange={(e)=>setTargetRoas({...targetRoas, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
+                          <span className="text-[12px] font-bold text-slate-500">%</span>
+                        </div>
+                        <span className={`text-[13px] font-bold whitespace-nowrap ${isOverallRoasAchieved ? 'text-indigo-600' : 'text-red-500'}`}>
+                          목표 ROAS {overallRoasSign}{overallRoasDiff.toFixed(0)}% {overallRoasStatus}
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex justify-end text-[13px] font-bold text-indigo-600 mb-2">
-                      목표 ROAS {(macroStats['전체'].roas - targetRoas['전체']) >= 0 ? '+' : ''}{(macroStats['전체'].roas - (targetRoas['전체'] || 1)).toFixed(0)}% 달성
                     </div>
                     <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-indigo-600 transition-all duration-500" style={{ width: `${Math.min((macroStats['전체'].roas / (targetRoas['전체'] || 1)) * 100, 100)}%` }} />
+                      <div className={`h-full rounded-full ${isOverallRoasAchieved ? 'bg-indigo-600' : 'bg-red-500'} transition-all duration-500`} style={{ width: `${Math.min((macroStats['전체'].roas / (targetRoas['전체'] || 1)) * 100, 100)}%` }} />
                     </div>
                   </div>
 
                   {/* 개별 카테고리 ROAS */}
                   {macroCategories.map((mc) => {
                     const diff = macroStats[mc].roas - (targetRoas[mc] || 1);
-                    const sign = diff >= 0 ? '+' : '';
+                    const isAchieved = diff >= 0;
+                    const sign = isAchieved ? '+' : '';
+                    const statusText = isAchieved ? '달성' : '미달성';
+
                     return (
                       <div key={mc} className="space-y-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-[140px]">
                             <span className="text-[14px] font-bold text-slate-900">{mc}</span>
-                            <span className="text-[12px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">현재: {macroStats[mc].roas.toFixed(0)}%</span>
+                            <span className="text-[12px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats[mc].roas.toFixed(0)} %</span>
                           </div>
-                          <div className="flex items-center gap-4">
+                          
+                          {/* 수동 입력칸과 달성 텍스트를 한 줄로(좌측 땡김) */}
+                          <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                             <div className="flex items-center gap-1">
-                              <span className="text-[11px] font-bold text-slate-400">목표</span>
-                              <input type="number" value={targetRoas[mc]} onChange={(e)=>setTargetRoas({...targetRoas, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[12px] focus:outline-none focus:border-green-500" />
-                              <span className="text-[11px] font-bold text-slate-400">%</span>
+                              <span className="text-[12px] font-bold text-slate-400">목표</span>
+                              <input type="number" value={targetRoas[mc]} onChange={(e)=>setTargetRoas({...targetRoas, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[13px] focus:outline-none focus:border-green-500" />
+                              <span className="text-[12px] font-bold text-slate-400">%</span>
                             </div>
-                            <span className={`text-[13px] font-bold w-32 text-right ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
-                              목표 ROAS {sign}{diff.toFixed(0)}% 달성
+                            <span className={`text-[13px] font-bold whitespace-nowrap ${isAchieved ? "text-green-600" : "text-red-500"}`}>
+                              목표 ROAS {sign}{diff.toFixed(0)}% {statusText}
                             </span>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-green-500 transition-all duration-500" style={{ width: `${Math.min((macroStats[mc].roas / (targetRoas[mc] || 1)) * 100, 100)}%` }} />
+                          <div className={`h-full rounded-full ${isAchieved ? 'bg-green-500' : 'bg-red-400'} transition-all duration-500`} style={{ width: `${Math.min((macroStats[mc].roas / (targetRoas[mc] || 1)) * 100, 100)}%` }} />
                         </div>
                       </div>
                     );
@@ -440,46 +460,52 @@
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-black text-slate-900">전체 카테고리 통합</span>
-                        <span className="text-[12px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">현재: {macroStats['전체'].cvr.toFixed(2)}%</span>
+                        <span className="text-[12px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats['전체'].cvr.toFixed(2)} %</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
-                        <span className="text-[12px] font-bold text-slate-500">목표설정</span>
-                        <input type="number" step="0.1" value={targetCvr['전체']} onChange={(e)=>setTargetCvr({...targetCvr, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
-                        <span className="text-[12px] font-bold text-slate-500">%</span>
+                      <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
+                        <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
+                          <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                          <input type="number" step="0.1" value={targetCvr['전체']} onChange={(e)=>setTargetCvr({...targetCvr, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
+                          <span className="text-[12px] font-bold text-slate-500">%</span>
+                        </div>
+                        <span className={`text-[13px] font-bold whitespace-nowrap ${isOverallCvrAchieved ? 'text-purple-600' : 'text-red-500'}`}>
+                          목표 CVR {overallCvrSign}{overallCvrDiff.toFixed(2)}% {overallCvrStatus}
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex justify-end text-[13px] font-bold text-purple-600 mb-2">
-                      목표 CVR {(macroStats['전체'].cvr - targetCvr['전체']) >= 0 ? '+' : ''}{(macroStats['전체'].cvr - (targetCvr['전체'] || 1)).toFixed(2)}% 달성
                     </div>
                     <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-purple-600 transition-all duration-500" style={{ width: `${Math.min((macroStats['전체'].cvr / (targetCvr['전체'] || 1)) * 100, 100)}%` }} />
+                      <div className={`h-full rounded-full ${isOverallCvrAchieved ? 'bg-purple-600' : 'bg-red-500'} transition-all duration-500`} style={{ width: `${Math.min((macroStats['전체'].cvr / (targetCvr['전체'] || 1)) * 100, 100)}%` }} />
                     </div>
                   </div>
 
                   {/* 개별 카테고리 CVR */}
                   {macroCategories.map((mc) => {
                     const diff = macroStats[mc].cvr - (targetCvr[mc] || 1);
-                    const sign = diff >= 0 ? '+' : '';
+                    const isAchieved = diff >= 0;
+                    const sign = isAchieved ? '+' : '';
+                    const statusText = isAchieved ? '달성' : '미달성';
+
                     return (
                       <div key={mc} className="space-y-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-[140px]">
                             <span className="text-[14px] font-bold text-slate-900">{mc}</span>
-                            <span className="text-[12px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">현재: {macroStats[mc].cvr.toFixed(2)}%</span>
+                            <span className="text-[12px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded whitespace-nowrap">현재 : {macroStats[mc].cvr.toFixed(2)} %</span>
                           </div>
-                          <div className="flex items-center gap-4">
+                          
+                          <div className="flex items-center justify-start sm:justify-end gap-3 flex-1">
                             <div className="flex items-center gap-1">
-                              <span className="text-[11px] font-bold text-slate-400">목표</span>
-                              <input type="number" step="0.1" value={targetCvr[mc]} onChange={(e)=>setTargetCvr({...targetCvr, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[12px] focus:outline-none focus:border-blue-500" />
+                              <span className="text-[12px] font-bold text-slate-400">목표</span>
+                              <input type="number" step="0.1" value={targetCvr[mc]} onChange={(e)=>setTargetCvr({...targetCvr, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[13px] focus:outline-none focus:border-blue-500" />
                               <span className="text-[11px] font-bold text-slate-400">%</span>
                             </div>
-                            <span className={`text-[13px] font-bold w-32 text-right ${diff >= 0 ? "text-blue-600" : "text-red-500"}`}>
-                              목표 CVR {sign}{diff.toFixed(2)}% 달성
+                            <span className={`text-[13px] font-bold whitespace-nowrap ${isAchieved ? "text-blue-600" : "text-red-500"}`}>
+                              목표 CVR {sign}{diff.toFixed(2)}% {statusText}
                             </span>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min((macroStats[mc].cvr / (targetCvr[mc] || 1)) * 100, 100)}%` }} />
+                          <div className={`h-full rounded-full ${isAchieved ? 'bg-blue-500' : 'bg-red-400'} transition-all duration-500`} style={{ width: `${Math.min((macroStats[mc].cvr / (targetCvr[mc] || 1)) * 100, 100)}%` }} />
                         </div>
                       </div>
                     );
