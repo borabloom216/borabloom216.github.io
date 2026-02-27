@@ -12,7 +12,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <style>
-    /* 전체 폰트를 맑은 고딕으로 강제 고정 (기울임 방지) */
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif !important;
       font-style: normal !important;
@@ -36,13 +35,12 @@
       Filter: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
     };
 
-    // 카테고리를 일관되게 묶어주는 함수
     const getMacroCat = (cat) => {
       if (!cat) return '그 외 상품';
       const upperCat = cat.toUpperCase();
       if (upperCat.includes('TV')) return 'TV';
       if (upperCat.includes('에어컨')) return '에어컨';
-      if (upperCat.includes('공기청정기')) return '공기청정기'; // 청소기보다 먼저 체크
+      if (upperCat.includes('공기청정기')) return '공기청정기'; 
       if (upperCat.includes('청소기')) return '청소기';
       if (upperCat.includes('제습기')) return '제습기';
       return '그 외 상품';
@@ -52,19 +50,26 @@
 
     const App = () => {
       const [rawData, setRawData] = useState([]);
+      const [reportDate, setReportDate] = useState('');
       const [isLoading, setIsLoading] = useState(true);
-      const [selectedCategory, setSelectedCategory] = useState('전체'); // 최상단 글로벌 필터
-      const [pivotCategory, setPivotCategory] = useState('전체'); // 세부 성과 항목용 필터
+      const [selectedCategory, setSelectedCategory] = useState('전체'); 
+      const [pivotCategory, setPivotCategory] = useState('전체'); 
       const [loadError, setLoadError] = useState(false);
       
-      // 개별 카테고리 예산 상태
+      // 테이블 정렬 상태 (초기값: 광고비 내림차순)
+      const [sortConfig, setSortConfig] = useState({ key: 'spend', direction: 'desc' });
+
+      // 예산 설정 상태
       const [budgets, setBudgets] = useState({
-        'TV': 20000000,
-        '에어컨': 20000000,
-        '공기청정기': 10000000,
-        '청소기': 20000000,
-        '제습기': 10000000,
-        '그 외 상품': 10000000
+        'TV': 20000000, '에어컨': 20000000, '공기청정기': 10000000, '청소기': 20000000, '제습기': 10000000, '그 외 상품': 10000000
+      });
+
+      // 목표 ROAS / CVR 설정 상태
+      const [targetRoas, setTargetRoas] = useState({
+        '전체': 3000, 'TV': 3000, '에어컨': 3000, '공기청정기': 3000, '청소기': 3000, '제습기': 3000, '그 외 상품': 3000
+      });
+      const [targetCvr, setTargetCvr] = useState({
+        '전체': 4, 'TV': 4, '에어컨': 4, '공기청정기': 4, '청소기': 4, '제습기': 4, '그 외 상품': 4
       });
 
       const cleanNum = (val) => {
@@ -73,7 +78,6 @@
         return isNaN(num) ? 0 : num;
       };
 
-      // 데이터 불러오기 (새로운 구조 반영)
       useEffect(() => {
         Papa.parse('data.csv', {
           download: true,
@@ -87,10 +91,15 @@
               return;
             }
             
+            // H열 등에서 date 추출
+            if (results.data[0]['date']) {
+              setReportDate(results.data[0]['date']);
+            }
+            
             const parsed = results.data.map((row, idx) => ({
               id: idx,
-              category: getMacroCat(row['category'] || ''), // A열 카테고리 정규화
-              model: row['model'] || '알 수 없음', // B열 모델명 추가
+              category: getMacroCat(row['category'] || ''),
+              model: row['model'] || '알 수 없음',
               spend: cleanNum(row['spend'] || row['ad spend']),
               clicks: cleanNum(row['clicks']),
               impressions: cleanNum(row['impressions']),
@@ -109,12 +118,11 @@
         });
       }, []);
 
-      // 글로벌 필터 적용 데이터
       const filteredData = useMemo(() => {
         return selectedCategory === '전체' ? rawData : rawData.filter(d => d.category === selectedCategory);
       }, [selectedCategory, rawData]);
 
-      // 매크로 그룹핑 통계 (종합 예산, 목표 달성 현황용 - 필터 무관 전체 계산)
+      // 매크로 그룹핑 통계
       const macroStats = useMemo(() => {
         const stats = { '전체': { spend:0, revenue:0, clicks:0, conv:0 } };
         macroCategories.forEach(mc => stats[mc] = { spend:0, revenue:0, clicks:0, conv:0 });
@@ -141,11 +149,9 @@
         return stats;
       }, [rawData]);
 
-      // 전체 예산 합산
       const totalBudget = useMemo(() => Object.values(budgets).reduce((a, b) => a + b, 0), [budgets]);
       const globalBurnRate = totalBudget > 0 ? (macroStats['전체'].spend / totalBudget) * 100 : 0;
 
-      // 선택된 필터 기준 통계 (상단 4개 KPI용)
       const stats = useMemo(() => {
         const totalSpend = filteredData.reduce((acc, curr) => acc + curr.spend, 0);
         const totalRevenue = filteredData.reduce((acc, curr) => acc + curr.revenue, 0);
@@ -161,24 +167,53 @@
         };
       }, [filteredData]);
 
-      // 모델별(Model) 세부 성과 데이터 (피벗)
-      const pivotData = useMemo(() => {
-        // 테이블 내부 탭(pivotCategory)에 따라 데이터를 필터링
+      // 테이블 피벗 및 정렬
+      const sortedPivotData = useMemo(() => {
         const targetData = pivotCategory === '전체' ? rawData : rawData.filter(item => item.category === pivotCategory);
         const groups = {};
         
         targetData.forEach(item => {
           const key = item.model || '미상';
           if (!groups[key]) {
-            groups[key] = { label: key, spend: 0, revenue: 0, conv: 0, clicks: 0 };
+            groups[key] = { label: key, spend: 0, revenue: 0, conv: 0, clicks: 0, roas: 0, cvr: 0 };
           }
           groups[key].spend += item.spend;
           groups[key].revenue += item.revenue;
           groups[key].conv += item.conv;
           groups[key].clicks += item.clicks;
         });
-        return Object.values(groups).sort((a, b) => b.spend - a.spend); 
-      }, [rawData, pivotCategory]);
+
+        const arrData = Object.values(groups).map(g => {
+          g.roas = g.spend > 0 ? (g.revenue / g.spend) * 100 : 0;
+          g.cvr = g.clicks > 0 ? (g.conv / g.clicks) * 100 : 0;
+          return g;
+        });
+
+        arrData.sort((a, b) => {
+          if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        return arrData;
+      }, [rawData, pivotCategory, sortConfig]);
+
+      const handleSort = (key) => {
+        let direction = 'desc';
+        if (sortConfig.key === key && sortConfig.direction === 'desc') {
+          direction = 'asc';
+        }
+        setSortConfig({ key, direction });
+      };
+
+      const SortIcon = ({ column }) => {
+        const isActive = sortConfig.key === column;
+        return (
+          <span className={`ml-1 inline-block text-[10px] transition-transform ${isActive && sortConfig.direction === 'asc' ? 'rotate-180 text-blue-600' : isActive ? 'text-blue-600' : 'text-slate-300'}`}>
+            ▼
+          </span>
+        );
+      };
 
       const formatKrw = (val) => `₩ ${new Intl.NumberFormat('ko-KR').format(val)} 원`;
       const formatNum = (val) => new Intl.NumberFormat('ko-KR').format(val);
@@ -201,10 +236,10 @@
                   <span className="text-blue-600"><Icons.LayoutDashboard /></span>
                   네이버 보보 SA 광고 성과 리포트
                 </h1>
-                <p className="text-slate-500 text-[14px] font-bold mt-1">삼성공식파트너 보보 X 광고명가 광고 리포트</p>
+                <p className="text-slate-500 text-[13px] font-bold mt-1">삼성 공식 파트너 주식회사 보보 X 광고명가 광고 리포트</p>
+                {reportDate && <p className="text-slate-500 text-[13px] font-bold mt-1">DATE : {reportDate}</p>}
               </div>
               
-              {/* 글로벌 카테고리 필터 */}
               <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-200 overflow-x-auto whitespace-nowrap scrollbar-hide">
                 {['전체', ...macroCategories].map(cat => (
                   <button
@@ -248,7 +283,7 @@
                     </div>
                   </div>
 
-                  {/* 카테고리별 개별 예산 입력 및 소진 비율 */}
+                  {/* 카테고리별 개별 예산 입력 */}
                   <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {macroCategories.map(mc => {
                       const spend = macroStats[mc].spend;
@@ -261,8 +296,6 @@
                             <span className="text-[14px] font-black text-slate-900">{mc}</span>
                             <span className="text-[14px] font-bold text-slate-500">소진 비율 {ratio.toFixed(1)}%</span>
                           </div>
-                          
-                          {/* 개별 예산 입력칸 */}
                           <div className="flex items-center gap-2 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-200 w-full mb-3">
                             <span className="text-[12px] font-bold text-slate-400">예산</span>
                             <input
@@ -273,7 +306,6 @@
                             />
                             <span className="text-[12px] font-bold text-slate-400">원</span>
                           </div>
-
                           <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <div className="h-full bg-slate-800" style={{ width: `${Math.min(ratio, 100)}%` }} />
                           </div>
@@ -289,7 +321,6 @@
             {/* 2. Top 4 KPI Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               
-              {/* 1. 소진 광고비 (#d4a000 노란색 테마) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-[#d4a000]">
                   <Icons.Wallet />
@@ -301,7 +332,6 @@
                 </div>
               </div>
               
-              {/* 2. 매출 성과 (ROAS) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-green-600">
                   <Icons.TrendingUp />
@@ -311,7 +341,6 @@
                 <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.roas.toFixed(0)}%</div>
               </div>
 
-              {/* 3. 전환 성과 (CVR) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-blue-600">
                   <Icons.Target />
@@ -321,15 +350,12 @@
                 <div className="mt-2 text-[13px] text-slate-500 font-bold">{stats.cvr.toFixed(2)}%</div>
               </div>
 
-              {/* 4. 잔여 예산 (보라색 테마) */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-2 mb-3 text-purple-600">
                   <Icons.PieChart />
                   <span className="text-[18px] font-black">잔여 예산</span>
                 </div>
-                <div className="text-[24px] font-black text-slate-900">
-                  {formatKrw(currentResidual)}
-                </div>
+                <div className="text-[24px] font-black text-slate-900">{formatKrw(currentResidual)}</div>
                 <div className="mt-2 text-[13px] text-slate-500 font-bold">
                   소진 비율 : {currentBurnRatio.toFixed(1)}%
                 </div>
@@ -338,6 +364,7 @@
 
             {/* 3. 카테고리별 목표 달성 현황 (ROAS & CVR) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              
               {/* ROAS 목표 달성 현황 */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50">
@@ -346,33 +373,52 @@
                   </h3>
                 </div>
                 <div className="p-8 space-y-6">
-                  {/* 전체 카테고리 통합 (차별화 스타일) */}
-                  <div className="space-y-2 p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
-                    <div className="flex justify-between text-[14px] font-black">
-                      <span className="text-slate-900">전체 카테고리 통합</span>
-                      <span className="text-indigo-600">
-                        목표 ROAS {macroStats['전체'].roas - 3000 >= 0 ? '+' : ''}{(macroStats['전체'].roas - 3000).toFixed(0)}% 달성
-                      </span>
+                  
+                  {/* 전체 카테고리 통합 ROAS */}
+                  <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-black text-slate-900">전체 카테고리 통합</span>
+                        <span className="text-[12px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">현재: {macroStats['전체'].roas.toFixed(0)}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
+                        <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                        <input type="number" value={targetRoas['전체']} onChange={(e)=>setTargetRoas({...targetRoas, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
+                        <span className="text-[12px] font-bold text-slate-500">%</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end text-[13px] font-bold text-indigo-600 mb-2">
+                      목표 ROAS {(macroStats['전체'].roas - targetRoas['전체']) >= 0 ? '+' : ''}{(macroStats['전체'].roas - (targetRoas['전체'] || 1)).toFixed(0)}% 달성
                     </div>
                     <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.min((macroStats['전체'].roas / 3000) * 100, 100)}%` }} />
+                      <div className="h-full rounded-full bg-indigo-600 transition-all duration-500" style={{ width: `${Math.min((macroStats['전체'].roas / (targetRoas['전체'] || 1)) * 100, 100)}%` }} />
                     </div>
                   </div>
 
-                  {/* 개별 카테고리 (고정 순서) */}
+                  {/* 개별 카테고리 ROAS */}
                   {macroCategories.map((mc) => {
-                    const diff = macroStats[mc].roas - 3000;
+                    const diff = macroStats[mc].roas - (targetRoas[mc] || 1);
                     const sign = diff >= 0 ? '+' : '';
                     return (
-                      <div key={mc} className="space-y-1.5">
-                        <div className="flex justify-between text-[14px] font-bold">
-                          <span className="text-slate-900">{mc}</span>
-                          <span className={diff >= 0 ? "text-green-600" : "text-red-500"}>
-                            목표 ROAS {sign}{diff.toFixed(0)}% 달성
-                          </span>
+                      <div key={mc} className="space-y-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-bold text-slate-900">{mc}</span>
+                            <span className="text-[12px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">현재: {macroStats[mc].roas.toFixed(0)}%</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-bold text-slate-400">목표</span>
+                              <input type="number" value={targetRoas[mc]} onChange={(e)=>setTargetRoas({...targetRoas, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[12px] focus:outline-none focus:border-green-500" />
+                              <span className="text-[11px] font-bold text-slate-400">%</span>
+                            </div>
+                            <span className={`text-[13px] font-bold w-32 text-right ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
+                              목표 ROAS {sign}{diff.toFixed(0)}% 달성
+                            </span>
+                          </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-green-500" style={{ width: `${Math.min((macroStats[mc].roas / 3000) * 100, 100)}%` }} />
+                          <div className="h-full rounded-full bg-green-500 transition-all duration-500" style={{ width: `${Math.min((macroStats[mc].roas / (targetRoas[mc] || 1)) * 100, 100)}%` }} />
                         </div>
                       </div>
                     );
@@ -388,33 +434,52 @@
                   </h3>
                 </div>
                 <div className="p-8 space-y-6">
-                  {/* 전체 카테고리 통합 (차별화 스타일) */}
-                  <div className="space-y-2 p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
-                    <div className="flex justify-between text-[14px] font-black">
-                      <span className="text-slate-900">전체 카테고리 통합</span>
-                      <span className="text-purple-600">
-                        목표 CVR {macroStats['전체'].cvr - 4 >= 0 ? '+' : ''}{(macroStats['전체'].cvr - 4).toFixed(2)}% 달성
-                      </span>
+                  
+                  {/* 전체 카테고리 통합 CVR */}
+                  <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 mb-6">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-black text-slate-900">전체 카테고리 통합</span>
+                        <span className="text-[12px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">현재: {macroStats['전체'].cvr.toFixed(2)}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white px-2 py-1 rounded border border-slate-200">
+                        <span className="text-[12px] font-bold text-slate-500">목표설정</span>
+                        <input type="number" step="0.1" value={targetCvr['전체']} onChange={(e)=>setTargetCvr({...targetCvr, '전체': Number(e.target.value)})} className="w-16 text-right font-bold text-[13px] text-slate-800 focus:outline-none" />
+                        <span className="text-[12px] font-bold text-slate-500">%</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-end text-[13px] font-bold text-purple-600 mb-2">
+                      목표 CVR {(macroStats['전체'].cvr - targetCvr['전체']) >= 0 ? '+' : ''}{(macroStats['전체'].cvr - (targetCvr['전체'] || 1)).toFixed(2)}% 달성
                     </div>
                     <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-purple-600" style={{ width: `${Math.min((macroStats['전체'].cvr / 4) * 100, 100)}%` }} />
+                      <div className="h-full rounded-full bg-purple-600 transition-all duration-500" style={{ width: `${Math.min((macroStats['전체'].cvr / (targetCvr['전체'] || 1)) * 100, 100)}%` }} />
                     </div>
                   </div>
 
-                  {/* 개별 카테고리 (고정 순서) */}
+                  {/* 개별 카테고리 CVR */}
                   {macroCategories.map((mc) => {
-                    const diff = macroStats[mc].cvr - 4;
+                    const diff = macroStats[mc].cvr - (targetCvr[mc] || 1);
                     const sign = diff >= 0 ? '+' : '';
                     return (
-                      <div key={mc} className="space-y-1.5">
-                        <div className="flex justify-between text-[14px] font-bold">
-                          <span className="text-slate-900">{mc}</span>
-                          <span className={diff >= 0 ? "text-blue-600" : "text-red-500"}>
-                            목표 CVR {sign}{diff.toFixed(2)}% 달성
-                          </span>
+                      <div key={mc} className="space-y-2 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[14px] font-bold text-slate-900">{mc}</span>
+                            <span className="text-[12px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">현재: {macroStats[mc].cvr.toFixed(2)}%</span>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] font-bold text-slate-400">목표</span>
+                              <input type="number" step="0.1" value={targetCvr[mc]} onChange={(e)=>setTargetCvr({...targetCvr, [mc]: Number(e.target.value)})} className="w-14 border-b border-slate-200 bg-transparent text-right font-bold text-[12px] focus:outline-none focus:border-blue-500" />
+                              <span className="text-[11px] font-bold text-slate-400">%</span>
+                            </div>
+                            <span className={`text-[13px] font-bold w-32 text-right ${diff >= 0 ? "text-blue-600" : "text-red-500"}`}>
+                              목표 CVR {sign}{diff.toFixed(2)}% 달성
+                            </span>
+                          </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min((macroStats[mc].cvr / 4) * 100, 100)}%` }} />
+                          <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${Math.min((macroStats[mc].cvr / (targetCvr[mc] || 1)) * 100, 100)}%` }} />
                         </div>
                       </div>
                     );
@@ -423,13 +488,12 @@
               </div>
             </div>
 
-            {/* 4. 세부 성과 항목 (Model별 데이터 피벗) */}
+            {/* 4. 세부 성과 항목 (Model별 데이터 피벗 & 테이블 정렬) */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
               <div className="px-8 py-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h3 className="font-black text-slate-900 text-[18px] flex items-center gap-2">
                   <span className="text-blue-600"><Icons.Filter /></span> 세부 성과 항목
                 </h3>
-                {/* 모델 데이터를 필터링할 새로운 카테고리 탭 */}
                 <div className="flex bg-slate-100 p-1 rounded-xl overflow-x-auto whitespace-nowrap scrollbar-hide">
                   {['전체', ...macroCategories].map(cat => (
                     <button 
@@ -447,22 +511,32 @@
                   <thead className="bg-slate-50 text-slate-500 text-left font-bold text-[14px] border-b border-slate-200">
                     <tr>
                       <th className="px-8 py-5">분석 항목</th>
-                      <th className="px-8 py-5 text-right">광고비</th>
-                      <th className="px-8 py-5 text-right">광고매출</th>
-                      <th className="px-8 py-5 text-right">ROAS</th>
-                      <th className="px-8 py-5 text-right">판매수량</th>
-                      <th className="px-8 py-5 text-right text-blue-600">전환 성과 (CVR)</th>
+                      <th className="px-8 py-5 text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('spend')}>
+                        광고비 <SortIcon column="spend" />
+                      </th>
+                      <th className="px-8 py-5 text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('revenue')}>
+                        광고매출 <SortIcon column="revenue" />
+                      </th>
+                      <th className="px-8 py-5 text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('roas')}>
+                        ROAS <SortIcon column="roas" />
+                      </th>
+                      <th className="px-8 py-5 text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('conv')}>
+                        판매수량 <SortIcon column="conv" />
+                      </th>
+                      <th className="px-8 py-5 text-right text-blue-600 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('cvr')}>
+                        전환 성과 (CVR) <SortIcon column="cvr" />
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {pivotData.length > 0 ? pivotData.map((row, idx) => (
+                    {sortedPivotData.length > 0 ? sortedPivotData.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-8 py-5 font-black text-slate-900">{row.label}</td>
                         <td className="px-8 py-5 text-right font-bold">{formatKrw(row.spend)}</td>
                         <td className="px-8 py-5 text-right font-black">{formatKrw(row.revenue)}</td>
-                        <td className="px-8 py-5 text-right text-green-600 font-black">{row.spend > 0 ? ((row.revenue / row.spend) * 100).toFixed(0) : 0}%</td>
+                        <td className="px-8 py-5 text-right text-green-600 font-black">{row.roas.toFixed(0)}%</td>
                         <td className="px-8 py-5 text-right font-bold">{formatNum(row.conv)}건</td>
-                        <td className="px-8 py-5 text-right font-black text-blue-600">{row.clicks > 0 ? ((row.conv / row.clicks) * 100).toFixed(2) : 0}%</td>
+                        <td className="px-8 py-5 text-right font-black text-blue-600">{row.cvr.toFixed(2)}%</td>
                       </tr>
                     )) : (
                       <tr><td colSpan="6" className="text-center py-10 text-slate-400 font-bold">해당 카테고리에 데이터가 없습니다.</td></tr>
